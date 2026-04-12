@@ -12,10 +12,22 @@ const { ServiceError } = require('../utils/errors');
          try {
              const flightId = data.flightId;
              let getFlightRequestURL = `${FLIGHT_SERVICE_PATH}/api/v1/flights/${flightId}`;
-             const flight =  await axios.get(getFlightRequestURL);
-             console.log('FROM BOOKING SERVICE',flight.data);
-             return flight.data;
+             const response =  await axios.get(getFlightRequestURL);
+             const flightData =response.data.data;
+             let priceOfTheFlight = flightData.price;
+             if(data.noOfSeats > flightData.totalSeats){
+                 throw new ServiceError('Something went wrong in the booking process',
+                    'Insufficient seats in the flight');
+             }
+             const totalCost = priceOfTheFlight - data.noOfSeats;
+             const bookingPayload = {...data, totalCost};
+             const booking = await this.bookingRepository.create(bookingPayload);
+             
+              
             } catch (error) {
+                if(error.name == 'RepositoryError'  || error.name == 'ValidationError'){
+                    throw error;
+                }
              throw new ServiceError();
           }
 
